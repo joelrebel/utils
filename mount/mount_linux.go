@@ -429,19 +429,32 @@ func (mounter *SafeFormatAndMount) GetDiskFormat(disk string) (string, error) {
 			// Ignore empty line.
 			continue
 		}
-		cs := strings.Split(l, "=")
-		if len(cs) != 2 {
-			return "", fmt.Errorf("blkid returns invalid output: %s", output)
-		}
-		// TYPE is filesystem type, and PTTYPE is partition table type, according
-		// to https://www.kernel.org/pub/linux/utils/util-linux/v2.21/libblkid-docs/.
-		if cs[0] == "TYPE" {
-			fstype = cs[1]
-		} else if cs[0] == "PTTYPE" {
-			pttype = cs[1]
+
+		if strings.Contains(l, " TYPE=\"") {
+			// busybox blkid output is not newline separated, nor does it honor the args passed in
+			cs := strings.Split(l, " TYPE=")
+			if len(cs) != 2 {
+				return "", fmt.Errorf("blkid returns invalid output: %s", output)
+			}
+
+			fstype = strings.Replace(cs[1], "\"", "", -1)
+		} else {
+			cs := strings.Split(l, "=")
+			if len(cs) != 2 {
+				return "", fmt.Errorf("blkid returns invalid output: %s", output)
+			}
+			// TYPE is filesystem type, and PTTYPE is partition table type, according
+			// to https://www.kernel.org/pub/linux/utils/util-linux/v2.21/libblkid-docs/.
+			if cs[0] == "TYPE" {
+				fstype = cs[1]
+			} else if cs[0] == "PTTYPE" {
+				pttype = cs[1]
+			}
 		}
 	}
 
+	fmt.Println(string(output))
+	fmt.Printf("fstype -> %s\n ptype -> %s\n", fstype, pttype)
 	if len(pttype) > 0 {
 		klog.V(4).Infof("Disk %s detected partition table type: %s", disk, pttype)
 		// Returns a special non-empty string as filesystem type, then kubelet

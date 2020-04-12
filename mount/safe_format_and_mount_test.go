@@ -193,6 +193,14 @@ func TestSafeFormatAndMount(t *testing.T) {
 			},
 		},
 		{
+			description: "Test that a busybox 'blkid' is called and reports ext4 partition",
+			fstype:      "ext4",
+			execScripts: []ExecArgs{
+				{"blkid", []string{"-p", "-s", "TYPE", "-s", "PTTYPE", "-o", "export", "/dev/foo"}, `/dev/foo: UUID="60157f19-9426-4aa7-b9a9-15140088dc9d" TYPE="ext4"`, nil},
+				{"fsck", []string{"-a", "/dev/foo"}, "", nil},
+			},
+		},
+		{
 			description: "Test that 'blkid' is called but has some usage or other errors (an exit code of 4 is returned)",
 			fstype:      "xfs",
 			mountErrs:   []error{fmt.Errorf("unknown filesystem type '(null)'"), nil},
